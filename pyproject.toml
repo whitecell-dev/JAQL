@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jaql-lite"
+version = "0.1.0"
+description = "JAQL: JSON + YAML Query Language - jq-like tool with YAML pipelines"
+authors = [{name = "AXIS Team"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "PyYAML>=6.0"
+]
+keywords = ["json", "yaml", "query", "jq", "transformation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Filters",
+]
+
+[project.urls]
+Homepage = "https://github.com/axis-org/jaql-lite"
+Repository = "https://github.com/axis-org/jaql-lite"
+
+[project.scripts]
+jaql = "jaql.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+include = ["jaql*"]
