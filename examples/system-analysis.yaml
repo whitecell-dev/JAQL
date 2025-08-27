@@ -1,0 +1,27 @@
+
+# ============================================================================
+# system-analysis.yaml (Multi-stage example)
+# Usage: { echo '---'; ps aux | jc --ps --yaml-out; echo '---'; free -b | jc --free --yaml-out; } | jaql run system-analysis.yaml --emit yaml
+# ============================================================================
+stages:
+  ps_analysis:
+    input: 0  # First YAML document (ps aux)
+    pipes:
+      - select: "cpu_percent > 1.0"
+      - project: ["user", "command", "cpu_percent", "mem_percent"]
+      - derive:
+          resource_score: "cpu_percent + (mem_percent * 0.5)"
+
+  memory_analysis:
+    input: 1  # Second YAML document (free)
+    pipes:
+      - select: "type == 'Mem'"
+      - derive: 
+          usage_percent: "(used / total) * 100"
+          available_gb: "available / (1024**3)"
+          
+outputs:
+  high_resource_processes: { from: ps_analysis }
+  memory_status: { from: memory_analysis }
+
+---

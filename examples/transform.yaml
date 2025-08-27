@@ -1,6 +1,0 @@
-pipes:
-  - select: "age >= 18"
-  - derive: {"is_adult": "age >= 18", "name_length": "len(name)"}
-  - project: ["name", "email", "is_adult", "name_length"]
-
-

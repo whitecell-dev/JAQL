@@ -1,0 +1,15 @@
+
+# ============================================================================
+# nonrunning-services.yaml
+# Usage: systemctl list-units --type=service --all | jc --systemctl --yaml-out | jaql run nonrunning-services.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "unit.endswith('.service') and (active != 'active' or sub not in ['running', 'exited'])"
+  - project: ["unit", "load", "active", "sub", "description"]
+  - derive:
+      status_summary: "active + ':' + sub"
+      needs_attention: "load == 'loaded' and active == 'failed'"
+
+---
+
+

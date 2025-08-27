@@ -1,0 +1,15 @@
+# ============================================================================
+# network-connections.yaml
+# Usage: ss -tuln | jc --ss --yaml-out | jaql run network-connections.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "state == 'LISTEN'"
+  - project: ["local_address", "local_port", "process"]
+  - derive:
+      service_type: "'SSH' if local_port == '22' else ('HTTP' if local_port in ['80', '443'] else 'OTHER')"
+      binding: "'ALL_INTERFACES' if local_address.startswith('0.0.0.0') or local_address.startswith('::') else 'LOCALHOST'"
+      security_note: "'EXPOSED' if binding == 'ALL_INTERFACES' and service_type == 'OTHER' else 'OK'"
+
+---
+
+

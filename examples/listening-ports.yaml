@@ -1,0 +1,4 @@
+pipes:
+  - select: "state == 'LISTEN'"
+  - project: ["protocol", "local_address", "local_port", "process", "pid"]
+

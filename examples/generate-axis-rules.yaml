@@ -1,0 +1,17 @@
+# ============================================================================
+# generate-axiom-rules.yaml (Meta-programming example)
+# Usage: ps aux | jc --ps --yaml-out | jaql run generate-axiom-rules.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "user == 'root' and cpu_percent > 0"
+  - project: ["command", "cpu_percent"]
+  - derive:
+      rule_name: "'monitor_root_process_' + str(hash(command) % 10000)"
+      rule_condition: "'user == \"root\" and command == \"' + command + '\"'"
+      rule_action: "'alert(\"Root process detected: ' + command + ' using ' + str(cpu_percent) + '% CPU\")'"
+      rule_priority: "'HIGH' if cpu_percent > 5.0 else 'MEDIUM'"
+  - project: ["rule_name", "rule_condition", "rule_action", "rule_priority"]
+
+---
+
+

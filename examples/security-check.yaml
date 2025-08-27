@@ -1,0 +1,12 @@
+# ============================================================================
+# security-check.yaml
+# Usage: docker inspect $(docker ps -q) | jc --docker-inspect --yaml-out | jaql run security-check.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "HostConfig and HostConfig.Privileged == True"
+  - project: ["Name", "HostConfig.Privileged"]
+  - derive: 
+      alert: "'PRIVILEGED_CONTAINER'"
+      container_name: "Name.lstrip('/')"
+
+---

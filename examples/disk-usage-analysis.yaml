@@ -1,0 +1,12 @@
+
+# ============================================================================
+# disk-usage-analysis.yaml  
+# Usage: df -h | jc --df --yaml-out | jaql run disk-usage-analysis.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "use_percent is not None and use_percent > 10"
+  - project: ["filesystem", "mounted_on", "size", "used", "avail", "use_percent"]
+  - derive:
+      alert_level: "'CRITICAL' if use_percent > 90 else ('WARNING' if use_percent > 75 else 'INFO')"
+      available_gb: "avail.replace('G', '') if 'G' in avail else '0'"
+      usage_summary: "str(use_percent) + '% used (' + used + ' of ' + size + ')'"

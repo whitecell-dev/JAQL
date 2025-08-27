@@ -1,0 +1,10 @@
+# ============================================================================
+# running-services.yaml
+# Usage: systemctl list-units --type=service --state=running | jc --systemctl --yaml-out | jaql run running-services.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "unit.endswith('.service') and active == 'active' and sub == 'running'"
+  - project: ["unit", "sub", "description"]
+
+
+

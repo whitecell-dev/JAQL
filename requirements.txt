@@ -1,0 +1,12 @@
+# JAQL Requirements
+# Core dependencies for enhanced JAQL with YAML support
+
+# Required
+pyyaml>=6.0
+
+# Development and testing
+pytest>=7.0
+pytest-cov>=4.0
+
+# Optional but recommended for better performance
+ruamel.yaml>=0.17.0  # More robust YAML parsing if needed

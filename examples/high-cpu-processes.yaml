@@ -1,0 +1,12 @@
+# ============================================================================
+# high-cpu-processes.yaml  
+# Usage: ps aux | jc --ps --yaml-out | jaql run high-cpu-processes.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "cpu_percent > 5.0"
+  - project: ["user", "command", "cpu_percent", "mem_percent"]
+  - derive: 
+      alert_level: "'HIGH' if cpu_percent > 10.0 else 'MEDIUM'"
+      resource_usage: "str(cpu_percent) + '% CPU, ' + str(mem_percent) + '% MEM'"
+
+-

@@ -1,0 +1,120 @@
+# Example JAQL pipelines for jc --yaml-out integration
+# Save these as separate .yaml files and run with commands shown
+
+# ============================================================================
+# running-services.yaml
+# Usage: systemctl list-units --type=service --state=running | jc --systemctl --yaml-out | jaql run running-services.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "unit.endswith('.service') and active == 'active' and sub == 'running'"
+  - project: ["unit", "sub", "description"]
+
+---
+
+# ============================================================================
+# high-cpu-processes.yaml  
+# Usage: ps aux | jc --ps --yaml-out | jaql run high-cpu-processes.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "cpu_percent > 5.0"
+  - project: ["user", "command", "cpu_percent", "mem_percent"]
+  - derive: 
+      alert_level: "'HIGH' if cpu_percent > 10.0 else 'MEDIUM'"
+      resource_usage: "str(cpu_percent) + '% CPU, ' + str(mem_percent) + '% MEM'"
+
+---
+
+# ============================================================================
+# security-check.yaml
+# Usage: docker inspect $(docker ps -q) | jc --docker-inspect --yaml-out | jaql run security-check.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "HostConfig and HostConfig.Privileged == True"
+  - project: ["Name", "HostConfig.Privileged"]
+  - derive: 
+      alert: "'PRIVILEGED_CONTAINER'"
+      container_name: "Name.lstrip('/')"
+
+---
+
+# ============================================================================
+# nonrunning-services.yaml
+# Usage: systemctl list-units --type=service --all | jc --systemctl --yaml-out | jaql run nonrunning-services.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "unit.endswith('.service') and (active != 'active' or sub not in ['running', 'exited'])"
+  - project: ["unit", "load", "active", "sub", "description"]
+  - derive:
+      status_summary: "active + ':' + sub"
+      needs_attention: "load == 'loaded' and active == 'failed'"
+
+---
+
+# ============================================================================
+# system-analysis.yaml (Multi-stage example)
+# Usage: { echo '---'; ps aux | jc --ps --yaml-out; echo '---'; free -b | jc --free --yaml-out; } | jaql run system-analysis.yaml --emit yaml
+# ============================================================================
+stages:
+  ps_analysis:
+    input: 0  # First YAML document (ps aux)
+    pipes:
+      - select: "cpu_percent > 1.0"
+      - project: ["user", "command", "cpu_percent", "mem_percent"]
+      - derive:
+          resource_score: "cpu_percent + (mem_percent * 0.5)"
+
+  memory_analysis:
+    input: 1  # Second YAML document (free)
+    pipes:
+      - select: "type == 'Mem'"
+      - derive: 
+          usage_percent: "(used / total) * 100"
+          available_gb: "available / (1024**3)"
+          
+outputs:
+  high_resource_processes: { from: ps_analysis }
+  memory_status: { from: memory_analysis }
+
+---
+
+# ============================================================================
+# generate-axiom-rules.yaml (Meta-programming example)
+# Usage: ps aux | jc --ps --yaml-out | jaql run generate-axiom-rules.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "user == 'root' and cpu_percent > 0"
+  - project: ["command", "cpu_percent"]
+  - derive:
+      rule_name: "'monitor_root_process_' + str(hash(command) % 10000)"
+      rule_condition: "'user == \"root\" and command == \"' + command + '\"'"
+      rule_action: "'alert(\"Root process detected: ' + command + ' using ' + str(cpu_percent) + '% CPU\")'"
+      rule_priority: "'HIGH' if cpu_percent > 5.0 else 'MEDIUM'"
+  - project: ["rule_name", "rule_condition", "rule_action", "rule_priority"]
+
+---
+
+# ============================================================================
+# network-connections.yaml
+# Usage: ss -tuln | jc --ss --yaml-out | jaql run network-connections.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "state == 'LISTEN'"
+  - project: ["local_address", "local_port", "process"]
+  - derive:
+      service_type: "'SSH' if local_port == '22' else ('HTTP' if local_port in ['80', '443'] else 'OTHER')"
+      binding: "'ALL_INTERFACES' if local_address.startswith('0.0.0.0') or local_address.startswith('::') else 'LOCALHOST'"
+      security_note: "'EXPOSED' if binding == 'ALL_INTERFACES' and service_type == 'OTHER' else 'OK'"
+
+---
+
+# ============================================================================
+# disk-usage-analysis.yaml  
+# Usage: df -h | jc --df --yaml-out | jaql run disk-usage-analysis.yaml --emit yaml
+# ============================================================================
+pipes:
+  - select: "use_percent is not None and use_percent > 10"
+  - project: ["filesystem", "mounted_on", "size", "used", "avail", "use_percent"]
+  - derive:
+      alert_level: "'CRITICAL' if use_percent > 90 else ('WARNING' if use_percent > 75 else 'INFO')"
+      available_gb: "avail.replace('G', '') if 'G' in avail else '0'"
+      usage_summary: "str(use_percent) + '% used (' + used + ' of ' + size + ')'"
